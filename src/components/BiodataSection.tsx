@@ -8,17 +8,20 @@ export const BiodataSection: React.FC = () => {
   const { students } = useDataStore();
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const pauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     let animId: number;
     let lastTime: number | null = null;
-    const speed = 0.75;
+    const speed = 1.5; // ponytail: tweak speed here if needed
     const step = (time: number) => {
-      if (!isPaused && container) {
+      if (!isPausedRef.current && container) {
         if (lastTime !== null) {
           const delta = Math.min((time - lastTime) / 16.67, 2);
           container.scrollLeft += speed * delta;
@@ -30,11 +33,12 @@ export const BiodataSection: React.FC = () => {
       animId = requestAnimationFrame(step);
     };
     animId = requestAnimationFrame(step);
-    return () => { cancelAnimationFrame(animId); if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); };
-  }, [isPaused]);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
-  const handleTouchStart = () => { setIsPaused(true); if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); };
-  const handleTouchEnd = () => { if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); pauseTimeoutRef.current = setTimeout(() => setIsPaused(false), 2000); };
+  const setPaused = (v: boolean) => { if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); isPausedRef.current = v; setIsPaused(v); };
+  const handleTouchStart = () => setPaused(true);
+  const handleTouchEnd = () => { if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current); pauseTimeoutRef.current = setTimeout(() => setPaused(false), 2000); };
   const displayStudents = students.length > 0 ? [...students, ...students] : [];
 
   return (
@@ -44,7 +48,7 @@ export const BiodataSection: React.FC = () => {
         <motion.p className="mt-1 text-xs sm:text-sm text-[#9A8678]" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}>Pilih dan klik salah satu kartu siswa untuk membuka modal biodata lengkap, pesan, kesan, dan akun sosial media.</motion.p>
       </div>
 
-      <div ref={scrollContainerRef} onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="flex items-stretch gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 select-none no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div ref={scrollContainerRef} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} className="flex items-stretch gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 select-none no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {displayStudents.map((student, idx) => (
           <div key={`${student.id}-${idx}`} id={`mini-card-${student.id}-${idx}`} onClick={() => setSelectedStudent(student)} className="group flex-none w-[198px] flex flex-col items-center text-center cursor-pointer transition-transform duration-300 hover:-translate-y-1">
             <div className="relative w-[198px] h-[264px] rounded-xl overflow-hidden shadow-md mb-3 border border-[#4B4038]/60 group-hover:border-[#CAAA98] transition-colors">

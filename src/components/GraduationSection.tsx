@@ -9,8 +9,11 @@ export const GraduationSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [lightboxPhoto, setLightboxPhoto] = useState<{ image: string; title: string; caption?: string } | null>(null);
   const [isGalleryPaused, setIsGalleryPaused] = useState(false);
+  const isGalleryPausedRef = useRef(false);
   const galleryScrollRef = useRef<HTMLDivElement>(null);
   const galleryPauseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => { isGalleryPausedRef.current = isGalleryPaused; }, [isGalleryPaused]);
 
   const filteredGraduates = graduationData.graduates.filter((name) => name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -19,9 +22,9 @@ export const GraduationSection: React.FC = () => {
     if (!container) return;
     let animId: number;
     let lastTime: number | null = null;
-    const speed = 0.7;
+    const speed = 1.5; // ponytail: tweak speed here if needed
     const step = (time: number) => {
-      if (!isGalleryPaused && container) {
+      if (!isGalleryPausedRef.current && container) {
         if (lastTime !== null) {
           const delta = Math.min((time - lastTime) / 16.67, 2);
           container.scrollLeft += speed * delta;
@@ -33,11 +36,12 @@ export const GraduationSection: React.FC = () => {
       animId = requestAnimationFrame(step);
     };
     animId = requestAnimationFrame(step);
-    return () => { cancelAnimationFrame(animId); if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); };
-  }, [isGalleryPaused]);
+    return () => cancelAnimationFrame(animId);
+  }, []);
 
-  const handleGalleryTouchStart = () => { setIsGalleryPaused(true); if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); };
-  const handleGalleryTouchEnd = () => { if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); galleryPauseTimeoutRef.current = setTimeout(() => setIsGalleryPaused(false), 2000); };
+  const setGalleryPaused = (v: boolean) => { if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); isGalleryPausedRef.current = v; setIsGalleryPaused(v); };
+  const handleGalleryTouchStart = () => setGalleryPaused(true);
+  const handleGalleryTouchEnd = () => { if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); galleryPauseTimeoutRef.current = setTimeout(() => setGalleryPaused(false), 2000); };
   const displayGallery = graduationData.gallery.length > 0 ? [...graduationData.gallery, ...graduationData.gallery] : [];
 
   return (
@@ -111,7 +115,7 @@ export const GraduationSection: React.FC = () => {
         {/* 4. Gallery */}
         <div>
           <div className="mb-5"><h3 className="text-xl sm:text-2xl font-bold text-[#CAAA98]">Galeri Dokumentasi Wisuda</h3><p className="text-xs sm:text-sm text-[#9A8678]">Sorotan kamera menangkap senyum bangga dan kebahagiaan di hari kelulusan</p></div>
-          <div ref={galleryScrollRef} onMouseEnter={() => setIsGalleryPaused(true)} onMouseLeave={() => setIsGalleryPaused(false)} onTouchStart={handleGalleryTouchStart} onTouchEnd={handleGalleryTouchEnd} className="flex items-stretch gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 select-none no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <div ref={galleryScrollRef} onMouseEnter={() => setGalleryPaused(true)} onMouseLeave={() => setGalleryPaused(false)} onTouchStart={handleGalleryTouchStart} onTouchEnd={handleGalleryTouchEnd} className="flex items-stretch gap-4 sm:gap-5 overflow-x-auto pb-4 pt-1 select-none no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {displayGallery.map((item, idx) => (
               <div key={`${item.id}-${idx}`} onClick={() => setLightboxPhoto({ image: item.image, title: 'Dokumentasi Wisuda', caption: item.caption })} className="group flex-none w-64 sm:w-72 md:w-80 bg-[#202940] border border-[#4B4038] hover:border-[#CAAA98] rounded-2xl overflow-hidden shadow-md cursor-pointer transition-all duration-300 hover:-translate-y-1 flex flex-col">
                 <div className="relative h-44 sm:h-48 w-full overflow-hidden"><img src={item.image} alt={item.caption} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /><div className="absolute inset-0 bg-gradient-to-t from-[#202940] via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" /><div className="absolute top-2.5 right-2.5 p-1 rounded-lg bg-[#202940]/80 text-[#CAAA98] opacity-0 group-hover:opacity-100 transition-opacity"><Maximize2 className="w-3.5 h-3.5" /></div></div>

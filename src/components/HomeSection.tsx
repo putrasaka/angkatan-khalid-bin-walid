@@ -142,9 +142,9 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ visitor }) => {
                   <ImageIcon className="w-4 h-4" />
                   <span>Buka Album Momen</span>
                 </button>
-                <a href={COHORT_INFO.instagramUrl} target="_blank" rel="noopener noreferrer" id="btn-home-instagram" className="px-5 py-2.5 bg-[#4B4038]/60 hover:bg-[#4B4038] text-[#CAAA98] text-sm font-semibold border border-[#9A8678]/40 rounded-xl transition-all flex items-center gap-2 hover:border-[#CAAA98] cursor-pointer">
+                <a href="https://www.instagram.com/sixkhalidbinwalid" target="_blank" rel="noopener noreferrer" id="btn-home-instagram" className="px-5 py-2.5 bg-[#4B4038]/60 hover:bg-[#4B4038] text-[#CAAA98] text-sm font-semibold border border-[#9A8678]/40 rounded-xl transition-all flex items-center gap-2 hover:border-[#CAAA98] cursor-pointer">
                   <Instagram className="w-4 h-4" />
-                  <span>Instagram @{COHORT_INFO.instagram}</span>
+                  <span>{COHORT_INFO.instagram}</span>
                 </a>
               </div>
             </motion.div>

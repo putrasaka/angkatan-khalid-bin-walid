@@ -27,9 +27,20 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
+        
         <div className="flex items-center gap-4 text-xs">
           <a
-            href={COHORT_INFO.instagramUrl}
+            href="https://www.instagram.com/6khlidbinwalid"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4B4038]/50 hover:bg-[#4B4038] text-[#CAAA98] border border-[#4B4038] transition-colors"
+          >
+            <Instagram className="w-4 h-4" />
+            <span>@{COHORT_INFO.instagram}</span>
+          </a>
+
+          <a
+            href="https://www.instagram.com/sixkhalidbinwalid"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4B4038]/50 hover:bg-[#4B4038] text-[#CAAA98] border border-[#4B4038] transition-colors"
