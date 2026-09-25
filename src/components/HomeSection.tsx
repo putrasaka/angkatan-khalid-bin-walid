@@ -11,7 +11,7 @@ interface HomeSectionProps {
 }
 
 export const HomeSection: React.FC<HomeSectionProps> = ({ visitor }) => {
-  const { moments } = useDataStore();
+  const { moments, students } = useDataStore();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [hasStatsInView, setHasStatsInView] = useState(false);
   const [showCaption, setShowCaption] = useState(false);
@@ -125,9 +125,9 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ visitor }) => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2">
         <div className="bg-transparent border-0 shadow-none p-0 py-2 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 sm:gap-10 items-center">
-            <motion.div className="lg:col-span-8 space-y-4" initial={{ opacity: 0, x: 100 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}>
-              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#9A8678]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 sm:gap-10 items-center overflow-hidden">
+            <motion.div className="lg:col-span-8 space-y-4 min-w-0" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#9A8678] min-w-0 break-words">
                 <span>Profil Angkatan Resmi</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-[#CAAA98]"></span>
                 <span className="text-[#CAAA98]">{COHORT_INFO.batch}</span>
@@ -155,7 +155,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ visitor }) => {
                 <div>
                   <span className="block text-[11px] text-[#9A8678] font-semibold uppercase tracking-wider">Total Angkatan</span>
                   <motion.div className="text-base sm:text-lg font-bold text-[#CAAA98]" initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} onViewportEnter={() => setHasStatsInView(true)} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-                    <AnimatedCounter value={COHORT_INFO.totalStudents} isActive={hasStatsInView} suffix=" Siswa & Siswi" />
+                    <AnimatedCounter value={students.length} isActive={hasStatsInView} suffix=" Siswa & Siswi" />
                   </motion.div>
                 </div>
               </div>
