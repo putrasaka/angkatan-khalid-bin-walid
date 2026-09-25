@@ -43,11 +43,13 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
   return (
     <div
       id="login-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#202940]/95 backdrop-blur-md transition-opacity duration-500 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#202940]/95 backdrop-blur-md transition-opacity duration-500 overflow-y-auto overflow-x-hidden"
     >
-      {/* Decorative ambient glow */}
-      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-[#CAAA98]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[#4B4038]/30 rounded-full blur-3xl pointer-events-none" />
+      {/* Decorative ambient glow - clipped, never adds page width */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-[#CAAA98]/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[#4B4038]/30 rounded-full blur-3xl" />
+      </div>
 
       <div className="relative w-full max-w-md bg-[#202940] border-2 border-[#4B4038] rounded-2xl shadow-2xl p-6 sm:p-8 text-[#CAAA98] my-auto">
         {/* Header */}

@@ -32,7 +32,7 @@ export default function App() {
 
   return (
     <DataProvider>
-      <div className="min-h-screen bg-[#202940] text-[#CAAA98] font-sans selection:bg-[#CAAA98] selection:text-[#202940]">
+      <div className="min-h-screen overflow-x-clip bg-[#202940] text-[#CAAA98] font-sans selection:bg-[#CAAA98] selection:text-[#202940]">
         <LoginOverlay isOpen={isLoginOpen} onLogin={handleLogin} />
         <Navbar visitor={visitor} onOpenLogin={handleOpenLogin} />
         <UserView visitor={visitor} />
