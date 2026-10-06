@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { Search, AlertCircle, ArrowLeftRight, School, Check } from 'lucide-react';
 
 export const BeforeAfterSection: React.FC = () => {
-  const { students } = useDataStore();
+  const { students, isInitialLoading } = useDataStore();
   const [query, setQuery] = useState(students[0]?.name || '');
   const [matchedStudent, setMatchedStudent] = useState<Student | null>(students[0] || null);
   const [isNotFound, setIsNotFound] = useState(false);

@@ -65,9 +65,6 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ student,
                 alt={student.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-[#202940]/85 text-[10px] font-bold text-[#CAAA98] border border-[#4B4038]">
-                Alumni IX
-              </div>
             </div>
 
             {/* Nama & Basic Identity */}

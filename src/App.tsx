@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { VisitorInfo } from './types';
-import { DataProvider } from './context/DataContext';
+import { DataProvider, useDataStore } from './context/DataContext';
 import { LoginOverlay } from './components/LoginOverlay';
 import { Navbar } from './components/Navbar';
 import { UserView } from './components/UserView';
+import { LoadingScreen } from './components/LoadingScreen';
 
-export default function App() {
+function AppContent() {
+  const { isInitialLoading, isRefreshing } = useDataStore();
   const [isLoginOpen, setIsLoginOpen] = useState(true);
   const [visitor, setVisitor] = useState<VisitorInfo | null>(null);
 
@@ -31,12 +33,19 @@ export default function App() {
   const handleOpenLogin = () => setIsLoginOpen(true);
 
   return (
+    <div className="min-h-screen overflow-x-clip bg-[#202940] text-[#CAAA98] font-sans selection:bg-[#CAAA98] selection:text-[#202940]">
+      <LoadingScreen isInitialLoading={isInitialLoading} isRefreshing={isRefreshing} />
+      <LoginOverlay isOpen={isLoginOpen} onLogin={handleLogin} />
+      <Navbar visitor={visitor} onOpenLogin={handleOpenLogin} />
+      <UserView visitor={visitor} />
+    </div>
+  );
+}
+
+export default function App() {
+  return (
     <DataProvider>
-      <div className="min-h-screen overflow-x-clip bg-[#202940] text-[#CAAA98] font-sans selection:bg-[#CAAA98] selection:text-[#202940]">
-        <LoginOverlay isOpen={isLoginOpen} onLogin={handleLogin} />
-        <Navbar visitor={visitor} onOpenLogin={handleOpenLogin} />
-        <UserView visitor={visitor} />
-      </div>
+      <AppContent />
     </DataProvider>
   );
 }

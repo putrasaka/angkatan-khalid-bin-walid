@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { Calendar } from 'lucide-react';
 
 export const MomentsSection: React.FC = () => {
-  const { moments } = useDataStore();
+  const { moments, isInitialLoading } = useDataStore();
   const [selectedPhoto, setSelectedPhoto] = useState<{ image: string; title: string; caption?: string } | null>(null);
 
   return (
@@ -21,21 +21,36 @@ export const MomentsSection: React.FC = () => {
           <span className="text-xs text-[#9A8678] font-medium">{moments.length} Dokumentasi Terpilih</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-7 lg:gap-8">
-          {moments.map((moment) => (
-            <article key={moment.id} id={`moment-card-${moment.id}`} className="bg-transparent border-0 shadow-none flex flex-col group transition-all duration-300">
-              <div className="relative h-48 sm:h-52 md:h-56 lg:h-60 2xl:h-64 w-full rounded-2xl overflow-hidden cursor-pointer border border-[#4B4038]/60 group-hover:border-[#CAAA98]/60 transition-colors" onClick={() => setSelectedPhoto({ image: moment.image, title: moment.title, caption: moment.story })}>
-                <img src={moment.image} alt={moment.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#202940]/70 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
+        {isInitialLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-7 lg:gap-8">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex flex-col">
+                <div className="h-48 sm:h-52 md:h-56 lg:h-60 2xl:h-64 w-full rounded-2xl bg-[#4B4038]/20 animate-pulse" />
+                <div className="pt-4 space-y-2">
+                  <div className="h-3 w-20 bg-[#4B4038]/20 rounded animate-pulse" />
+                  <div className="h-4 w-3/4 bg-[#4B4038]/20 rounded animate-pulse" />
+                  <div className="h-3 w-full bg-[#4B4038]/20 rounded animate-pulse" />
+                </div>
               </div>
-              <div className="pt-4 pb-1 px-0 bg-transparent flex-1 flex flex-col">
-                <div className="flex items-center gap-2 mb-2 text-[11px] font-medium text-[#9A8678]"><Calendar className="w-3 h-3" /><span>{moment.date}</span></div>
-                <h4 className="text-base sm:text-lg font-bold text-[#CAAA98] group-hover:text-white transition-colors mb-2 leading-snug">{moment.title}</h4>
-                <p className="text-xs sm:text-sm text-[#9A8678] leading-relaxed line-clamp-3">{moment.story}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-7 lg:gap-8">
+            {moments.map((moment) => (
+              <article key={moment.id} id={`moment-card-${moment.id}`} className="bg-transparent border-0 shadow-none flex flex-col group transition-all duration-300">
+                <div className="relative h-48 sm:h-52 md:h-56 lg:h-60 2xl:h-64 w-full rounded-2xl overflow-hidden cursor-pointer border border-[#4B4038]/60 group-hover:border-[#CAAA98]/60 transition-colors" onClick={() => setSelectedPhoto({ image: moment.image, title: moment.title, caption: moment.story })}>
+                  <img src={moment.image} alt={moment.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#202940]/70 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity" />
+                </div>
+                <div className="pt-4 pb-1 px-0 bg-transparent flex-1 flex flex-col">
+                  <div className="flex items-center gap-2 mb-2 text-[11px] font-medium text-[#9A8678]"><Calendar className="w-3 h-3" /><span>{moment.date}</span></div>
+                  <h4 className="text-base sm:text-lg font-bold text-[#CAAA98] group-hover:text-white transition-colors mb-2 leading-snug">{moment.title}</h4>
+                  <p className="text-xs sm:text-sm text-[#9A8678] leading-relaxed line-clamp-3">{moment.story}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
 
       {selectedPhoto && <PhotoLightboxModal image={selectedPhoto.image} title={selectedPhoto.title} caption={selectedPhoto.caption} onClose={() => setSelectedPhoto(null)} />}

@@ -15,7 +15,8 @@ export const GraduationSection: React.FC = () => {
 
   useEffect(() => { isGalleryPausedRef.current = isGalleryPaused; }, [isGalleryPaused]);
 
-  const filteredGraduates = graduationData.graduates.filter((name) => name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredGraduates = graduationData?.graduates.filter((name) => name.toLowerCase().includes(searchTerm.toLowerCase())) ?? [];
+  const displayGallery = graduationData?.gallery.length ? [...graduationData.gallery, ...graduationData.gallery] : [];
 
   useEffect(() => {
     const container = galleryScrollRef.current;
@@ -42,7 +43,19 @@ export const GraduationSection: React.FC = () => {
   const setGalleryPaused = (v: boolean) => { if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); isGalleryPausedRef.current = v; setIsGalleryPaused(v); };
   const handleGalleryTouchStart = () => setGalleryPaused(true);
   const handleGalleryTouchEnd = () => { if (galleryPauseTimeoutRef.current) clearTimeout(galleryPauseTimeoutRef.current); galleryPauseTimeoutRef.current = setTimeout(() => setGalleryPaused(false), 2000); };
-  const displayGallery = graduationData.gallery.length > 0 ? [...graduationData.gallery, ...graduationData.gallery] : [];
+
+  if (!graduationData) {
+    return (
+      <section id="graduation" className="py-10 sm:py-12 w-full">
+        <div className="text-center max-w-3xl mx-auto mb-6 sm:mb-8 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#CAAA98] tracking-tight">Wisuda & Pelepasan Angkatan</h2>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-64 sm:h-80 md:h-96 lg:h-[440px] w-full rounded-2xl bg-[#4B4038]/20 animate-pulse" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="graduation" className="py-10 sm:py-12 w-full">

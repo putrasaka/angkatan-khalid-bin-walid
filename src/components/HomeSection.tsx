@@ -61,7 +61,15 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ visitor }) => {
 
   const activeSlide = carouselSlides[currentSlide];
 
-  if (totalSlides === 0) return null;
+  if (totalSlides === 0) {
+    return (
+      <section id="home" className="pt-0 pb-10 sm:pb-12 w-full">
+        <div className="w-full relative overflow-hidden border-b border-[#4B4038] bg-[#202940] mb-6 sm:mb-8">
+          <div className="h-[320px] sm:h-[400px] md:h-[480px] lg:h-[540px] w-full bg-[#4B4038]/20 animate-pulse" />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="home" className="pt-0 pb-10 sm:pb-12 w-full">
