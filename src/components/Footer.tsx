@@ -28,7 +28,7 @@ export const Footer: React.FC = () => {
         </div>
 
         
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
           <a
             href="https://www.instagram.com/6khlidbinwalid"
             target="_blank"
