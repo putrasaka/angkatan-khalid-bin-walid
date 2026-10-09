@@ -83,6 +83,16 @@ create table video_moments (
   created_at timestamp with time zone default now()
 );
 
+-- 7b. Visitor Logs (login pengunjung; setup aman dijalankan ulang: lihat visitor_logs.sql)
+create table if not exists visitor_logs (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  age text,
+  previous_school text,
+  current_school text,
+  logged_in_at timestamp with time zone default now()
+);
+
 -- 8. Enable RLS (keamanan)
 alter table students enable row level security;
 alter table moments enable row level security;
@@ -90,6 +100,7 @@ alter table graduation_info enable row level security;
 alter table graduates enable row level security;
 alter table graduation_gallery enable row level security;
 alter table video_moments enable row level security;
+alter table visitor_logs enable row level security;
 
 -- 9. Policies: Public bisa baca (anon)
 create policy "Public can read students" on students for select using (true);
@@ -98,6 +109,7 @@ create policy "Public can read graduation_info" on graduation_info for select us
 create policy "Public can read graduates" on graduates for select using (true);
 create policy "Public can read graduation_gallery" on graduation_gallery for select using (true);
 create policy "Public can read video_moments" on video_moments for select using (true);
+create policy "Public can read visitor_logs" on visitor_logs for select using (true);
 
 -- 10. Policies: Service role bisa tulis (untuk Admin via server)
 -- Catatan: Jika pakai anon key langsung dari browser, ganti dengan "allow anon write" untuk development
@@ -125,6 +137,9 @@ create policy "Allow anon delete graduation_gallery" on graduation_gallery for d
 create policy "Allow anon insert video_moments" on video_moments for insert with check (true);
 create policy "Allow anon update video_moments" on video_moments for update using (true);
 create policy "Allow anon delete video_moments" on video_moments for delete using (true);
+
+create policy "Allow anon insert visitor_logs" on visitor_logs for insert with check (true);
+create policy "Allow anon delete visitor_logs" on visitor_logs for delete using (true);
 
 -- 11. Storage bucket 'media' harus dibuat manual di Dashboard Storage > New Bucket (Public)
 -- Policies storage:

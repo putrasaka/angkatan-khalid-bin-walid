@@ -1,10 +1,39 @@
 import React, { useState } from 'react';
 import { VisitorInfo } from '../types';
+import { supabase } from '../lib/supabase';
 import { GraduationCap, ArrowRight, Sparkles, UserCheck } from 'lucide-react';
 
 interface LoginOverlayProps {
   isOpen: boolean;
   onLogin: (info: VisitorInfo) => void;
+}
+
+// Fire-and-forget: dedup per nama pakai ilike dengan wildcard (% _) di-escape,
+// jadi case-insensitive tapi nama literal aman. Ceiling: race dua tab bisa dobel
+// (tanpa unique constraint) — tambahkan unique index di tabel bila perlu.
+async function saveVisitorLog(info: VisitorInfo): Promise<void> {
+  if (!supabase) return;
+  try {
+    const name = info.name.trim();
+    const pattern = name.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const { data, error: findError } = await supabase
+      .from('visitor_logs')
+      .select('id')
+      .ilike('name', pattern)
+      .limit(1);
+    if (findError) throw findError;
+    if (data && data.length > 0) return; // sudah pernah login → skip
+
+    const { error } = await supabase.from('visitor_logs').insert({
+      name,
+      age: info.age,
+      previous_school: info.previousSchool,
+      current_school: info.currentSchool,
+    });
+    if (error) throw error;
+  } catch (err) {
+    console.warn('[visitor_logs] gagal menyimpan:', err);
+  }
 }
 
 export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) => {
@@ -18,22 +47,35 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Harap masukkan nama Anda');
+
+    const trimmedName = name.trim();
+    const trimmedAge = age.trim();
+    const trimmedPrevSchool = previousSchool.trim();
+    const trimmedCurrSchool = currentSchool.trim();
+
+    if (!trimmedName || !trimmedAge || !trimmedPrevSchool || !trimmedCurrSchool) {
+      setError('Harap lengkapi semua kolom yang wajib diisi');
+      return;
+    }
+    const ageNum = Number(trimmedAge);
+    if (!Number.isInteger(ageNum) || ageNum < 10 || ageNum > 99) {
+      setError('Umur harus berupa angka antara 10 dan 99');
       return;
     }
 
-    onLogin({
-      name: name.trim(),
-      age: age.trim() || '15',
-      previousSchool: previousSchool.trim() || 'SDIT Nurul Fikri',
-      currentSchool: currentSchool.trim() || 'SMA Negeri 1 Teladan',
+    const info: VisitorInfo = {
+      name: trimmedName,
+      age: trimmedAge,
+      previousSchool: trimmedPrevSchool,
+      currentSchool: trimmedCurrSchool,
       loggedInAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    });
+    };
+    onLogin(info);
+    void saveVisitorLog(info); // tidak memblokir login
   };
 
   const handleDemoFill = () => {
-    setName('Ahmad Raihan Pratama');
+    setName('Kenzie niscala mukti');
     setAge('16');
     setPreviousSchool('SDIT Nurul Fikri');
     setCurrentSchool('SMA Negeri 1 Teladan');
@@ -102,18 +144,19 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
                 setName(e.target.value);
                 if (error) setError('');
               }}
-              placeholder="Contoh: Ahmad Raihan Pratama"
+              placeholder="Contoh: Kenzie niscala mukti"
               className="w-full px-4 py-2.5 bg-[#202940] border border-[#4B4038] focus:border-[#CAAA98] rounded-xl text-sm text-[#CAAA98] placeholder-[#9A8678]/60 outline-none transition-colors"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-[#9A8678] mb-1 uppercase tracking-wider">
-              Umur
+              Umur <span className="text-[#CAAA98]">*</span>
             </label>
             <input
               id="input-login-age"
               type="number"
+              required
               value={age}
               onChange={(e) => setAge(e.target.value)}
               placeholder="Contoh: 16"
@@ -125,11 +168,12 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
 
           <div>
             <label className="block text-xs font-semibold text-[#9A8678] mb-1 uppercase tracking-wider">
-              Sekolah SD
+              Sekolah SD <span className="text-[#CAAA98]">*</span>
             </label>
             <input
               id="input-login-prev-school"
               type="text"
+              required
               value={previousSchool}
               onChange={(e) => setPreviousSchool(e.target.value)}
               placeholder="Contoh: SDIT Nurul Fikri"
@@ -139,11 +183,12 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
 
           <div>
             <label className="block text-xs font-semibold text-[#9A8678] mb-1 uppercase tracking-wider">
-              Sekolah Sekarang
+              Sekolah Sekarang <span className="text-[#CAAA98]">*</span>
             </label>
             <input
               id="input-login-curr-school"
               type="text"
+              required
               value={currentSchool}
               onChange={(e) => setCurrentSchool(e.target.value)}
               placeholder="Contoh: SMA Negeri 1 Teladan"
