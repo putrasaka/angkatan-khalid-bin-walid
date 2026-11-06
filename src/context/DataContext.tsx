@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Student, Moment, GraduationData, VideoMoment } from '../types';
 import { STUDENTS, MOMENTS_FEED, GRADUATION_DATA, VIDEO_MOMENTS } from '../data/dummyData';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mapStudentRow, mapMomentRow, mapVideoRow, mapGalleryRow, mapGraduationInfo } from '../lib/mappers';
 
 export interface ToastNotification {
@@ -17,7 +16,6 @@ interface DataContextType {
   videoMoments: VideoMoment[];
   isInitialLoading: boolean;
   isRefreshing: boolean;
-  isSupabaseConfigured: boolean;
   // No-op in public mode (edit via Admin)
   addMoment: (moment: Omit<Moment, 'id'>) => void;
   updateMoment: (id: string, updated: Partial<Moment>) => void;
@@ -61,19 +59,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   const isFirstLoad = useRef(true);
+  const didFallback = useRef(false);
 
   const fetchAll = useCallback(async (silent = false) => {
-    if (!isSupabaseConfigured || !supabase) {
-      setStudents(STUDENTS);
-      setMoments(MOMENTS_FEED);
-      setGraduationData(GRADUATION_DATA);
-      setVideoMoments(VIDEO_MOMENTS);
-      showToast('Database tidak terhubung. Menampilkan data contoh. Solusi: Supabase → Settings → API, lalu isi VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY di file .env', 'error');
-      setIsInitialLoading(false);
-      setIsRefreshing(false);
-      return;
-    }
-
     if (isFirstLoad.current) {
       setIsInitialLoading(true);
     } else if (!silent) {
@@ -81,30 +69,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const [stuRes, momRes, gradInfoRes, graduatesRes, galleryRes, vidRes] = await Promise.all([
-        supabase.from('students').select('*').order('created_at', { ascending: true }),
-        supabase.from('moments').select('*').order('created_at', { ascending: true }),
-        supabase.from('graduation_info').select('*').eq('id', 1).single(),
-        supabase.from('graduates').select('*').order('position', { ascending: true }),
-        supabase.from('graduation_gallery').select('*').order('created_at', { ascending: true }),
-        supabase.from('video_moments').select('*').order('created_at', { ascending: true }),
-      ]);
+      const res = await fetch('/api/data', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
 
-      if (stuRes.data) setStudents(stuRes.data.map(mapStudentRow));
-      if (momRes.data) setMoments(momRes.data.map(mapMomentRow));
-      if (vidRes.data) setVideoMoments(vidRes.data.map(mapVideoRow));
+      setStudents((data.students ?? []).map(mapStudentRow));
+      setMoments((data.moments ?? []).map(mapMomentRow));
+      setVideoMoments((data.videos ?? []).map(mapVideoRow));
+      setGraduationData(
+        data.graduationInfo
+          ? mapGraduationInfo(
+              data.graduationInfo,
+              data.graduates ?? [],
+              (data.gallery ?? []).map(mapGalleryRow)
+            )
+          : GRADUATION_DATA
+      );
 
-      const graduates = graduatesRes.data ? graduatesRes.data.map((r: any) => r.name) : [];
-      const gallery = galleryRes.data ? galleryRes.data.map(mapGalleryRow) : [];
-
-      if (gradInfoRes.data) {
-        setGraduationData(mapGraduationInfo(gradInfoRes.data, graduates, gallery));
-      }
-
+      didFallback.current = false;
       isFirstLoad.current = false;
     } catch (err) {
-      console.error('Supabase fetch error', err);
-      showToast('Gagal memuat data dari database. Solusi: cek koneksi internet dan konfigurasi Supabase', 'error');
+      console.error('Fetch error', err);
+      // Halaman tidak boleh kosong: tampilkan data contoh, toast sekali saja.
+      setStudents(STUDENTS);
+      setMoments(MOMENTS_FEED);
+      setGraduationData(GRADUATION_DATA);
+      setVideoMoments(VIDEO_MOMENTS);
+      if (!didFallback.current) {
+        didFallback.current = true;
+        showToast('Gagal memuat data dari database. Menampilkan data contoh.', 'error');
+      }
     } finally {
       setIsInitialLoading(false);
       if (!silent) setIsRefreshing(false);
@@ -115,24 +109,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchAll();
   }, [fetchAll]);
 
-  // Realtime + polling fallback
+  // Polling fallback (pengganti realtime Supabase)
   useEffect(() => {
-    if (!isSupabaseConfigured || !supabase) return;
-    const channel = supabase
-      .channel('public-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'moments' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'video_moments' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'graduation_info' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'graduates' }, fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'graduation_gallery' }, fetchAll)
-      .subscribe();
-
     const interval = setInterval(() => fetchAll(true), 15000);
-    return () => {
-      supabase.removeChannel(channel);
-      clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [fetchAll]);
 
   // No-op handlers for public mode
@@ -147,7 +127,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         videoMoments,
         isInitialLoading,
         isRefreshing,
-        isSupabaseConfigured,
         addMoment: noop,
         updateMoment: noop,
         deleteMoment: noop,

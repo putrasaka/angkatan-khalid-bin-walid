@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { VisitorInfo } from '../types';
-import { supabase } from '../lib/supabase';
 import { GraduationCap, ArrowRight, Sparkles, UserCheck } from 'lucide-react';
 
 interface LoginOverlayProps {
@@ -8,29 +7,21 @@ interface LoginOverlayProps {
   onLogin: (info: VisitorInfo) => void;
 }
 
-// Fire-and-forget: dedup per nama pakai ilike dengan wildcard (% _) di-escape,
-// jadi case-insensitive tapi nama literal aman. Ceiling: race dua tab bisa dobel
-// (tanpa unique constraint) — tambahkan unique index di tabel bila perlu.
+// Fire-and-forget: server yang cek dedup per nama (case-insensitive) lalu insert.
+// Ceiling: race dua tab bisa dobel (tanpa unique constraint) — tambahkan unique index bila perlu.
 async function saveVisitorLog(info: VisitorInfo): Promise<void> {
-  if (!supabase) return;
   try {
-    const name = info.name.trim();
-    const pattern = name.replace(/[\\%_]/g, (c) => `\\${c}`);
-    const { data, error: findError } = await supabase
-      .from('visitor_logs')
-      .select('id')
-      .ilike('name', pattern)
-      .limit(1);
-    if (findError) throw findError;
-    if (data && data.length > 0) return; // sudah pernah login → skip
-
-    const { error } = await supabase.from('visitor_logs').insert({
-      name,
-      age: info.age,
-      previous_school: info.previousSchool,
-      current_school: info.currentSchool,
+    const res = await fetch('/api/visitor-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: info.name,
+        age: info.age,
+        previousSchool: info.previousSchool,
+        currentSchool: info.currentSchool,
+      }),
     });
-    if (error) throw error;
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch (err) {
     console.warn('[visitor_logs] gagal menyimpan:', err);
   }
