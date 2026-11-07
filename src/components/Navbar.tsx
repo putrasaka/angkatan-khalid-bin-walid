@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, BookOpen, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, BookOpen, User, MessageSquare, LogOut } from 'lucide-react';
 import { VisitorInfo } from '../types';
 import { COHORT_INFO } from '../data/dummyData';
 
 interface NavbarProps {
   visitor: VisitorInfo | null;
   onOpenLogin: () => void;
+  onOpenFeedback: () => void;
+  onLogout: () => void;
 }
 
 const NAV_ITEMS = [
@@ -17,10 +19,12 @@ const NAV_ITEMS = [
   { label: 'Video Moments', href: '#video-moments' },
 ];
 
-export const Navbar: React.FC<NavbarProps> = ({ visitor, onOpenLogin }) => {
+export const Navbar: React.FC<NavbarProps> = ({ visitor, onOpenLogin, onOpenFeedback, onLogout }) => {
   const [activeSection, setActiveSection] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -42,6 +46,22 @@ export const Navbar: React.FC<NavbarProps> = ({ visitor, onOpenLogin }) => {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!profileOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setProfileOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [profileOpen]);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
@@ -87,10 +107,45 @@ export const Navbar: React.FC<NavbarProps> = ({ visitor, onOpenLogin }) => {
 
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {visitor ? (
-              <button type="button" onClick={onOpenLogin} id="btn-visitor-badge" title={`Profil tamu: ${visitor.name} (klik untuk ubah)`} className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:px-3 sm:py-1.5 bg-[#4B4038]/50 hover:bg-[#4B4038] border border-[#9A8678]/40 rounded-full text-xs text-[#CAAA98] transition-colors cursor-pointer">
-                <div className="w-7 h-7 sm:w-5 sm:h-5 rounded-full bg-[#CAAA98] text-[#202940] flex items-center justify-center text-xs sm:text-[10px] font-bold shrink-0 shadow-sm">{visitor.name.charAt(0).toUpperCase()}</div>
-                <span className="hidden sm:inline max-w-[130px] truncate font-medium">{visitor.name}</span>
-              </button>
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileOpen((open) => !open)}
+                  id="btn-visitor-badge"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  title={`Profil tamu: ${visitor.name}`}
+                  className="flex items-center gap-1.5 sm:gap-2 p-1.5 sm:px-3 sm:py-1.5 bg-[#4B4038]/50 hover:bg-[#4B4038] border border-[#9A8678]/40 rounded-full text-xs text-[#CAAA98] transition-colors cursor-pointer"
+                >
+                  <div className="w-7 h-7 sm:w-5 sm:h-5 rounded-full bg-[#CAAA98] text-[#202940] flex items-center justify-center text-xs sm:text-[10px] font-bold shrink-0 shadow-sm">{visitor.name.charAt(0).toUpperCase()}</div>
+                  <span className="hidden sm:inline max-w-[130px] truncate font-medium">{visitor.name}</span>
+                </button>
+
+                {profileOpen && (
+                  <div role="menu" className="absolute right-0 mt-2 w-56 rounded-2xl bg-[#202940] border border-[#4B4038] shadow-2xl p-2 z-50">
+                    <div className="px-3 py-2 border-b border-[#4B4038] mb-1">
+                      <p className="text-[10px] uppercase tracking-wider text-[#9A8678]">Masuk sebagai</p>
+                      <p className="text-xs font-bold text-[#CAAA98] truncate">{visitor.name}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setProfileOpen(false); onOpenFeedback(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-[#CAAA98] hover:bg-[#4B4038]/60 transition-colors cursor-pointer"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Kirim masukan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setProfileOpen(false); onLogout(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-red-300 hover:bg-red-950/40 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button type="button" onClick={onOpenLogin} id="btn-nav-login" title="Isi Buku Tamu" className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 bg-[#CAAA98] text-[#202940] hover:bg-[#CAAA98]/90 rounded-full text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap">
                 <User className="w-4 h-4 sm:w-3.5 sm:h-3.5 shrink-0" />
@@ -117,12 +172,32 @@ export const Navbar: React.FC<NavbarProps> = ({ visitor, onOpenLogin }) => {
               );
             })}
           </div>
-          <div className="pt-3 border-t border-[#4B4038] flex items-center justify-between gap-2">
+          <div className="pt-3 border-t border-[#4B4038] flex flex-col gap-2">
             {visitor ? (
-              <div className="flex items-center gap-2 text-xs text-[#CAAA98]">
-                <div className="w-6 h-6 rounded-full bg-[#CAAA98] text-[#202940] flex items-center justify-center font-bold">{visitor.name.charAt(0)}</div>
-                <span>Tamu: <strong>{visitor.name}</strong></span>
-              </div>
+              <>
+                <div className="flex items-center gap-2 text-xs text-[#CAAA98]">
+                  <div className="w-6 h-6 rounded-full bg-[#CAAA98] text-[#202940] flex items-center justify-center font-bold">{visitor.name.charAt(0)}</div>
+                  <span>Tamu: <strong>{visitor.name}</strong></span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); onOpenFeedback(); }}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#4B4038]/60 text-[#CAAA98] text-xs font-semibold hover:bg-[#4B4038] transition-colors cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Kirim masukan</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMobileMenuOpen(false); onLogout(); }}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-red-950/40 text-red-300 text-xs font-semibold hover:bg-red-900/60 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              </>
             ) : (
               <button type="button" onClick={() => { setMobileMenuOpen(false); onOpenLogin(); }} className="text-xs text-[#CAAA98] underline">Isi Buku Tamu</button>
             )}
