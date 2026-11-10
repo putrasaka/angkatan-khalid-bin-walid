@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { rateLimit, rateLimitKey } from '../server/rate-limit';
-import { signVisitorToken } from '../server/visitor-token';
+import { rateLimit, rateLimitKey } from '../server/rate-limit.js';
+import { signVisitorToken } from '../server/visitor-token.js';
 
 // POST /api/visitor-log — catat pengunjung buku tamu (dedup per nama, case-insensitive)
 // lalu balas token bertanda tangan yang dipakai saat mengirim masukan.

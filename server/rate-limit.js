@@ -1,12 +1,15 @@
-import type { VercelRequest } from '@vercel/node';
+// @ts-check
 import { createHash } from 'node:crypto';
 
 // Rate limit berbasis tabel Neon. Satu statement upsert atomik supaya dua
 // request bersamaan tidak bisa sama-sama lolos.
 
-type Sql = { query: (text: string, params?: unknown[]) => Promise<any[]> };
+/**
+ * @typedef {{ query: (text: string, params?: unknown[]) => Promise<any[]> }} Sql
+ */
 
-export function clientIp(req: VercelRequest): string {
+/** @param {any} req */
+export function clientIp(req) {
   const forwarded = req.headers['x-forwarded-for'];
   const first = Array.isArray(forwarded) ? forwarded[0] : forwarded;
   if (first) {
@@ -18,20 +21,32 @@ export function clientIp(req: VercelRequest): string {
   return req.socket?.remoteAddress ?? 'unknown';
 }
 
-export function hashKey(scope: string, value: string, secret: string): string {
+/**
+ * @param {string} scope
+ * @param {string} value
+ * @param {string} secret
+ */
+export function hashKey(scope, value, secret) {
   return createHash('sha256').update(`${secret}|${scope}|${value}`).digest('hex');
 }
 
-export function rateLimitKey(req: VercelRequest, scope: string, secret: string): string {
+/**
+ * @param {any} req
+ * @param {string} scope
+ * @param {string} secret
+ */
+export function rateLimitKey(req, scope, secret) {
   return hashKey(scope, clientIp(req), secret);
 }
 
-export async function rateLimit(
-  sql: Sql,
-  key: string,
-  limit: number,
-  windowSeconds: number
-): Promise<{ allowed: boolean; retryAfter: number }> {
+/**
+ * @param {Sql} sql
+ * @param {string} key
+ * @param {number} limit
+ * @param {number} windowSeconds
+ * @returns {Promise<{ allowed: boolean; retryAfter: number }>}
+ */
+export async function rateLimit(sql, key, limit, windowSeconds) {
   const rows = await sql.query(
     `insert into rate_limits (key, window_start, count) values ($1, now(), 1)
      on conflict (key) do update set

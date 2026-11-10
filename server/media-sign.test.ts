@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { signMediaUrl, verifyMediaSignature } from './media-sign';
+import { signMediaUrl, verifyMediaSignature } from './media-sign.js';
 
 const SECRET = 'test-secret';
 

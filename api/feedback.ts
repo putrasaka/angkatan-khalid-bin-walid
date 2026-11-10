@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { hashKey, rateLimit, rateLimitKey } from '../server/rate-limit';
-import { verifyVisitorToken } from '../server/visitor-token';
+import { hashKey, rateLimit, rateLimitKey } from '../server/rate-limit.js';
+import { verifyVisitorToken } from '../server/visitor-token.js';
 
 // POST /api/feedback — masukan pengunjung. Identitas diambil dari token
 // pengunjung (bukan field name di body), lalu dicek ulang ke database.

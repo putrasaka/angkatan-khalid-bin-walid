@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { signMediaUrl } from '../server/media-sign';
+import { signMediaUrl } from '../server/media-sign.js';
 
 // GET /api/k7f2q9x4 — metadata publik. Nama endpoint sengaja acak.
 // Kolom gambar/video yang masih berupa data URI diganti URL /api/media supaya

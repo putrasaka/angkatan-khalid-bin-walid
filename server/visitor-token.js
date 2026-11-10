@@ -1,22 +1,23 @@
+// @ts-check
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // Token pengunjung bertanda tangan. Server memakai token ini untuk mengetahui
 // siapa yang mengirim masukan, bukan field `name` dari body request.
 
-export interface VisitorTokenPayload {
-  visitorId: string;
-  name: string;
-}
-
-function sign(encoded: string, secret: string): string {
+/**
+ * @param {string} encoded
+ * @param {string} secret
+ */
+function sign(encoded, secret) {
   return createHmac('sha256', secret).update(encoded).digest('hex');
 }
 
-export function signVisitorToken(
-  input: VisitorTokenPayload,
-  secret: string,
-  ttlSeconds = 86400
-): string {
+/**
+ * @param {{ visitorId: string; name: string }} input
+ * @param {string} secret
+ * @param {number} [ttlSeconds]
+ */
+export function signVisitorToken(input, secret, ttlSeconds = 86400) {
   const payload = {
     vid: input.visitorId,
     name: input.name,
@@ -26,7 +27,12 @@ export function signVisitorToken(
   return `${encoded}.${sign(encoded, secret)}`;
 }
 
-export function verifyVisitorToken(token: string, secret: string): VisitorTokenPayload | null {
+/**
+ * @param {string} token
+ * @param {string} secret
+ * @returns {{ visitorId: string; name: string } | null}
+ */
+export function verifyVisitorToken(token, secret) {
   if (typeof token !== 'string') return null;
   const parts = token.split('.');
   if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
@@ -37,7 +43,7 @@ export function verifyVisitorToken(token: string, secret: string): VisitorTokenP
   const b = Buffer.from(expected, 'utf8');
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
-  let payload: any;
+  let payload;
   try {
     payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
   } catch {

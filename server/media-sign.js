@@ -1,25 +1,35 @@
+// @ts-check
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 // URL media video berumur pendek. Kunci diturunkan dari secret yang sudah ada,
 // dengan label terpisah supaya tidak bisa dipakai silang dengan token pengunjung.
 
-function mediaKey(secret: string): Buffer {
+/** @param {string} secret */
+function mediaKey(secret) {
   return createHmac('sha256', secret).update('media').digest();
 }
 
-function signature(t: string, id: string, c: string, exp: string, secret: string): string {
+/**
+ * @param {string} t
+ * @param {string} id
+ * @param {string} c
+ * @param {string} exp
+ * @param {string} secret
+ */
+function signature(t, id, c, exp, secret) {
   return createHmac('sha256', mediaKey(secret))
     .update(`${t}|${id}|${c}|${exp}`)
     .digest('hex');
 }
 
-export function signMediaUrl(
-  t: string,
-  id: string,
-  c: string,
-  secret: string,
-  ttlSeconds = 7200
-): string {
+/**
+ * @param {string} t
+ * @param {string} id
+ * @param {string} c
+ * @param {string} secret
+ * @param {number} [ttlSeconds]
+ */
+export function signMediaUrl(t, id, c, secret, ttlSeconds = 7200) {
   const exp = String(Math.floor(Date.now() / 1000) + ttlSeconds);
   const sig = signature(t, id, c, exp, secret);
   return `/api/media?t=${encodeURIComponent(t)}&id=${encodeURIComponent(id)}&c=${encodeURIComponent(
@@ -27,10 +37,11 @@ export function signMediaUrl(
   )}&exp=${exp}&sig=${sig}`;
 }
 
-export function verifyMediaSignature(
-  params: { t: string; id: string; c: string; exp: string; sig: string },
-  secret: string
-): boolean {
+/**
+ * @param {{ t: string; id: string; c: string; exp: string; sig: string }} params
+ * @param {string} secret
+ */
+export function verifyMediaSignature(params, secret) {
   const { t, id, c, exp, sig } = params;
   if (!t || !id || !c || !exp || !sig) return false;
   if (!/^\d+$/.test(exp)) return false;

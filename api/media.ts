@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
-import { verifyMediaSignature } from '../server/media-sign';
+import { verifyMediaSignature } from '../server/media-sign.js';
 
 // GET /api/media?t=<tabel>&id=<id>&c=<kolom>
 // Menyajikan blob base64 dari database sebagai file gambar/video asli.
