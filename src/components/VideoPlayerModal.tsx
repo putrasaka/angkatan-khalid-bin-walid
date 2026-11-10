@@ -15,6 +15,15 @@ const fmt = (s: number) => {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 };
 
+// Cache blob per sesi: video yang sama tidak diunduh ulang saat modal dibuka lagi.
+const blobCache = new Map<string, string>();
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', () => {
+    blobCache.forEach((url) => URL.revokeObjectURL(url));
+    blobCache.clear();
+  });
+}
+
 export const VideoPlayerModal: React.FC<Props> = ({ video, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
@@ -26,6 +35,7 @@ export const VideoPlayerModal: React.FC<Props> = ({ video, onClose }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [src, setSrc] = useState<string | null>(null);
 
   const togglePlay = useCallback(() => {
     const el = videoRef.current;
@@ -60,9 +70,63 @@ export const VideoPlayerModal: React.FC<Props> = ({ video, onClose }) => {
     if (!video && document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   }, [video]);
 
+  // Unduh video sebagai blob supaya elemen <video> tidak memakai URL media asli.
+  useEffect(() => {
+    setSrc(null);
+    setError(null);
+    if (!video) return;
+
+    const url = video.videoUrl;
+    // URL eksternal dipakai langsung; fetch blob bisa diblokir CORS.
+    if (!url.startsWith('/api/media')) {
+      setSrc(url);
+      return;
+    }
+
+    const cached = blobCache.get(url);
+    if (cached) {
+      setSrc(cached);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoading(true);
+
+    void (async () => {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (cancelled) return;
+        if (res.status === 403) {
+          setError('Tautan video kedaluwarsa. Muat ulang halaman untuk memuat ulang.');
+          setIsLoading(false);
+          return;
+        }
+        if (!res.ok) {
+          setError('Video gagal dimuat. Periksa koneksi atau format berkas video.');
+          setIsLoading(false);
+          return;
+        }
+        const blob = await res.blob();
+        if (cancelled) return;
+        const objectUrl = URL.createObjectURL(blob);
+        blobCache.set(url, objectUrl);
+        setSrc(objectUrl);
+      } catch {
+        if (!cancelled) {
+          setError('Gagal terhubung ke server.');
+          setIsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [video]);
+
   // manual autoplay attempt with timeout
   useEffect(() => {
-    if (!video) return;
+    if (!video || !src) return;
     const el = videoRef.current;
     if (!el) return;
 
@@ -87,7 +151,7 @@ export const VideoPlayerModal: React.FC<Props> = ({ video, onClose }) => {
       cancelled = true;
       clearTimeout(timeoutId);
     };
-  }, [video]);
+  }, [video, src]);
 
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
@@ -136,7 +200,7 @@ export const VideoPlayerModal: React.FC<Props> = ({ video, onClose }) => {
             <video
               key={video.id}
               ref={videoRef}
-              src={video.videoUrl}
+              src={src ?? undefined}
               poster={video.posterUrl || undefined}
               playsInline
               preload="none"

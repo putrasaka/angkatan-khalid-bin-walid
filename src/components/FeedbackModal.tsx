@@ -43,13 +43,26 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, visitor, o
 
     setError('');
     setIsSending(true);
+    const token = visitor.token;
+    if (!token) {
+      setIsSending(false);
+      setError('Sesi pengunjung tidak valid. Silakan isi buku tamu lagi.');
+      return;
+    }
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: visitor.name, phone: trimmedPhone, message: trimmedMessage }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ phone: trimmedPhone, message: trimmedMessage }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        setError('Sesi pengunjung tidak valid. Silakan isi buku tamu lagi.');
+        return;
+      }
       if (!res.ok) {
         setError(data?.error ?? 'Gagal mengirim masukan.');
         return;

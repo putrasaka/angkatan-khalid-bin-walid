@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
+import { hashKey, rateLimit, rateLimitKey } from '../server/rate-limit';
+import { verifyVisitorToken } from '../server/visitor-token';
 
-// POST /api/feedback — masukan pengunjung. Nama pengirim berasal dari sesi
-// pengunjung di client; endpoint ini publik, jadi dibatasi per nama.
+// POST /api/feedback — masukan pengunjung. Identitas diambil dari token
+// pengunjung (bukan field name di body), lalu dicek ulang ke database.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
 
@@ -11,8 +13,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    return res.status(500).json({ error: 'DATABASE_URL belum diset di environment' });
+  const secret = process.env.VISITOR_TOKEN_SECRET;
+  if (!connectionString || !secret) {
+    return res.status(500).json({ error: 'Server belum dikonfigurasi' });
+  }
+
+  const auth = String(req.headers.authorization ?? '');
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  const visitor = verifyVisitorToken(token, secret);
+  if (!visitor) {
+    return res.status(401).json({ error: 'Sesi pengunjung tidak valid' });
   }
 
   let body: any;
@@ -22,13 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Body tidak valid' });
   }
 
-  const name = String(body.name ?? '').trim();
   const phone = String(body.phone ?? '').trim().replace(/\s+/g, ' ');
   const message = String(body.message ?? '').trim();
 
-  if (!name || name.length > 100) {
-    return res.status(400).json({ error: 'Nama pengirim tidak valid' });
-  }
   if (!/^[0-9+\-\s]{8,20}$/.test(phone)) {
     return res.status(400).json({ error: 'Nomor TLP wajib diisi (8-20 digit)' });
   }
@@ -39,16 +45,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const sql = neon(connectionString);
 
-    // Batas 1 masukan per nama per menit. Bisa diakali dengan ganti nama —
-    // tanpa penyimpanan IP/KV, ini batas yang wajar untuk situs kenangan.
-    const recent = await sql`
-      select 1 from feedback
-      where lower(visitor_name) = lower(${name})
-        and created_at > now() - interval '60 seconds'
-      limit 1
-    `;
-    if (recent.length > 0) {
+    const perVisitor = await rateLimit(
+      sql,
+      hashKey('feedback-visitor', visitor.visitorId, secret),
+      1,
+      60
+    );
+    if (!perVisitor.allowed) {
+      res.setHeader('Retry-After', String(perVisitor.retryAfter));
       return res.status(429).json({ error: 'Tunggu sebentar sebelum mengirim masukan lagi.' });
+    }
+
+    const perIp = await rateLimit(sql, rateLimitKey(req, 'feedback-ip', secret), 5, 600);
+    if (!perIp.allowed) {
+      res.setHeader('Retry-After', String(perIp.retryAfter));
+      return res.status(429).json({ error: 'Terlalu banyak percobaan. Coba lagi nanti.' });
+    }
+
+    const rows = await sql`
+      select name from visitor_logs where id::text = ${visitor.visitorId} limit 1
+    `;
+    const name = String((rows[0] as { name?: unknown } | undefined)?.name ?? '').trim();
+    if (!name) {
+      return res.status(401).json({ error: 'Sesi pengunjung tidak valid' });
     }
 
     await sql`

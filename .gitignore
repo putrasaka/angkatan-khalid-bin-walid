@@ -8,3 +8,6 @@ coverage/
 !.env.example
 icon.json
 csv-export/
+skills-lock.json
+.agents/
+.vercel

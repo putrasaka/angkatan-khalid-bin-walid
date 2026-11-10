@@ -69,7 +69,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      const res = await fetch('/api/data', { cache: 'no-store' });
+      const res = await fetch('/api/k7f2q9x4', { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 

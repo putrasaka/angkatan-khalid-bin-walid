@@ -1,30 +1,11 @@
 import React, { useState } from 'react';
 import { VisitorInfo } from '../types';
 import { GraduationCap, ArrowRight, Sparkles, UserCheck } from 'lucide-react';
+import { registerVisitor } from '../lib/visitor';
 
 interface LoginOverlayProps {
   isOpen: boolean;
   onLogin: (info: VisitorInfo) => void;
-}
-
-// Fire-and-forget: server yang cek dedup per nama (case-insensitive) lalu insert.
-// Ceiling: race dua tab bisa dobel (tanpa unique constraint) — tambahkan unique index bila perlu.
-async function saveVisitorLog(info: VisitorInfo): Promise<void> {
-  try {
-    const res = await fetch('/api/visitor-log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: info.name,
-        age: info.age,
-        previousSchool: info.previousSchool,
-        currentSchool: info.currentSchool,
-      }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  } catch (err) {
-    console.warn('[visitor_logs] gagal menyimpan:', err);
-  }
 }
 
 export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) => {
@@ -62,7 +43,10 @@ export const LoginOverlay: React.FC<LoginOverlayProps> = ({ isOpen, onLogin }) =
       loggedInAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
     };
     onLogin(info);
-    void saveVisitorLog(info); // tidak memblokir login
+    // Token menyusul tanpa memblokir masuk; kalau gagal, feedback akan minta isi buku tamu lagi.
+    void registerVisitor(info).then((token) => {
+      if (token) onLogin({ ...info, token });
+    });
   };
 
   const handleDemoFill = () => {

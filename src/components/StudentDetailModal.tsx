@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Student } from '../types';
-import { X, Instagram, MapPin, Calendar, Heart, Award, Quote, MessageSquare, Briefcase, Sparkles } from 'lucide-react';
+import { X, Instagram, Heart, Award, Quote, MessageSquare, Briefcase, Sparkles } from 'lucide-react';
 
 interface StudentDetailModalProps {
   student: Student | null;
@@ -102,24 +102,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({ student,
             </div>
           </div>
 
-          {/* Grid Informasi Detail (Tempat/Tgl Lahir, Alamat, Hobi, Cita-cita) */}
+          {/* Grid Informasi Detail (Hobi, Cita-cita) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-2xl bg-[#4B4038]/30 border border-[#4B4038]">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#9A8678] mb-1">
-                <Calendar className="w-3.5 h-3.5 text-[#CAAA98]" />
-                <span>Tempat, Tanggal Lahir</span>
-              </div>
-              <p className="text-sm font-semibold text-[#CAAA98]">{student.birthPlaceDate}</p>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#4B4038]/30 border border-[#4B4038]">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#9A8678] mb-1">
-                <MapPin className="w-3.5 h-3.5 text-[#CAAA98]" />
-                <span>Alamat Domisili</span>
-              </div>
-              <p className="text-sm font-semibold text-[#CAAA98] leading-snug">{student.address}</p>
-            </div>
-
             <div className="p-4 rounded-2xl bg-[#4B4038]/30 border border-[#4B4038]">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#9A8678] mb-1">
                 <Heart className="w-3.5 h-3.5 text-[#CAAA98]" />

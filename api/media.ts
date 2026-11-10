@@ -1,9 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { neon } from '@neondatabase/serverless';
+import { verifyMediaSignature } from '../server/media-sign';
 
 // GET /api/media?t=<tabel>&id=<id>&c=<kolom>
 // Menyajikan blob base64 dari database sebagai file gambar/video asli.
 // Tabel & kolom dibatasi whitelist supaya nama kolom tidak bisa diinjeksi.
+// Video hanya bisa diambil lewat URL bertanda tangan yang berumur pendek.
 const COLUMNS: Record<string, string[]> = {
   students: ['photo', 'photo_large', 'photo_sd', 'photo_smp'],
   moments: ['image'],
@@ -11,6 +13,16 @@ const COLUMNS: Record<string, string[]> = {
   graduation_gallery: ['image'],
   video_moments: ['video_url', 'poster_url'],
 };
+
+const ALLOWED_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
+]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const t = String(req.query.t ?? '');
@@ -22,8 +34,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    return res.status(500).json({ error: 'DATABASE_URL belum diset di environment' });
+  const secret = process.env.VISITOR_TOKEN_SECRET;
+  if (!connectionString || !secret) {
+    return res.status(500).json({ error: 'Server belum dikonfigurasi' });
+  }
+
+  const isVideo = t === 'video_moments' && c === 'video_url';
+  if (isVideo) {
+    const exp = String(req.query.exp ?? '');
+    const sig = String(req.query.sig ?? '');
+    if (!verifyMediaSignature({ t, id, c, exp, sig }, secret)) {
+      return res.status(403).json({ error: 'Tautan media tidak valid' });
+    }
   }
 
   try {
@@ -37,17 +59,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const match = value.match(/^data:([^;,]+)(;base64)?,([\s\S]*)$/);
     if (!match) {
       // Nilai sudah berupa URL biasa (mis. Unsplash) — arahkan saja.
+      // Hanya http(s), supaya tidak bisa dipakai redirect ke skema lain.
+      if (!/^https?:\/\//i.test(value)) {
+        return res.status(404).end();
+      }
       return res.redirect(307, value);
     }
 
-    const mime = match[1];
+    const mime = match[1].toLowerCase();
+    if (!ALLOWED_MIME.has(mime)) {
+      return res.status(415).json({ error: 'Tipe media tidak didukung' });
+    }
+
     const body = match[2]
       ? Buffer.from(match[3], 'base64')
       : Buffer.from(decodeURIComponent(match[3]));
 
     res.setHeader('Content-Type', mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Accept-Ranges', 'bytes');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Cache-Control', isVideo ? 'private, no-store' : 'public, max-age=86400');
 
     // Video butuh dukungan Range agar bisa di-seek (Safari menolak tanpa ini).
     const range = req.headers.range;

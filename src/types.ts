@@ -9,8 +9,6 @@ export interface Student {
   photoSMP: string; // Foto After (SMP/Sekarang)
   previousSchool: string; // Sekolah Dulu
   currentSchool: string; // Sekolah Sekarang
-  birthPlaceDate: string; // Tempat, Tanggal Lahir
-  address: string; // Alamat
   hobby: string; // Hobi
   dream: string; // Cita-cita
   message: string; // Pesan
@@ -58,4 +56,5 @@ export interface VisitorInfo {
   previousSchool: string;
   currentSchool: string;
   loggedInAt: string;
+  token?: string;
 }

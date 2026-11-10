@@ -13,8 +13,6 @@ export function mapStudentRow(row: any): Student {
     photoSMP: row.photo_smp,
     previousSchool: row.previous_school,
     currentSchool: row.current_school,
-    birthPlaceDate: row.birth_place_date,
-    address: row.address,
     hobby: row.hobby,
     dream: row.dream,
     message: row.message,
